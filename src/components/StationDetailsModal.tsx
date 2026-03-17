@@ -4,16 +4,16 @@ import {
   StyleSheet, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getPredictions } from '../utils/predictions';
+import StationPredictionCard from './StationPredictionCard';
 import type { Station } from '../data/stations';
 import type { ActiveRide } from '../context/AppContext';
 import { C, G, shadow } from '../constants/theme';
 
 interface Props {
-  visible: boolean;
-  station: Station | null;
-  activeRide: ActiveRide | null;
-  onClose: () => void;
+  visible:     boolean;
+  station:     Station | null;
+  activeRide:  ActiveRide | null;
+  onClose:     () => void;
   onTakeABike: (station: Station) => void;
 }
 
@@ -34,9 +34,8 @@ const bar = StyleSheet.create({
 export default function StationDetailsModal({ visible, station, activeRide, onClose, onTakeABike }: Props) {
   if (!station) return null;
 
-  const { p15, p30, p60 } = getPredictions(station);
   const canTake = !activeRide && station.bikes > 0;
-  const pct = Math.round((station.bikes / station.capacity) * 100);
+  const pct     = Math.round((station.bikes / station.capacity) * 100);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -45,8 +44,14 @@ export default function StationDetailsModal({ visible, station, activeRide, onCl
         <View style={s.handle} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Gradient header */}
-          <LinearGradient colors={G.forestToMint} style={s.gradHeader} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+
+          {/* ── Gradient header ──────────────────────────────────────────── */}
+          <LinearGradient
+            colors={G.forestToMint}
+            style={s.gradHeader}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
             <Text style={s.stationName}>{station.name}</Text>
             <Text style={s.stationSub}>Station Campus Loop · Tunis</Text>
 
@@ -57,7 +62,13 @@ export default function StationDetailsModal({ visible, station, activeRide, onCl
             </View>
           </LinearGradient>
 
-          {/* Availability now */}
+          {/* ── Prévisions IA (données réelles via /ml/predictions) ───────
+              Inséré directement sous le header, avant la dispo actuelle.
+              Le badge "Prédiction IA" et le bouton Actualiser sont intégrés
+              dans le composant StationPredictionCard.                      */}
+          <StationPredictionCard stationId={station.id} />
+
+          {/* ── Disponibilité actuelle ────────────────────────────────────── */}
           <View style={s.section}>
             <View style={s.rowBetween}>
               <Text style={s.sectionTitle}>Disponibilité actuelle</Text>
@@ -68,24 +79,7 @@ export default function StationDetailsModal({ visible, station, activeRide, onCl
             <AvailBar value={station.bikes} max={station.capacity} />
           </View>
 
-          {/* AI predictions */}
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Prévisions intelligentes</Text>
-            <View style={s.predList}>
-              {([['Dans 15 min', p15], ['Dans 30 min', p30], ['Dans 60 min', p60]] as [string, number][]).map(([label, val]) => (
-                <View key={label} style={s.predRow}>
-                  <Text style={s.predLabel}>{label}</Text>
-                  <View style={s.predRight}>
-                    <Text style={s.predVal}>{val} vélo{val !== 1 ? 's' : ''}</Text>
-                    <AvailBar value={val} max={station.capacity} />
-                  </View>
-                </View>
-              ))}
-            </View>
-            <Text style={s.disclaimer}>Estimations basées sur les tendances d'utilisation.</Text>
-          </View>
-
-          {/* Take bike button */}
+          {/* ── Prendre un vélo ───────────────────────────────────────────── */}
           <TouchableOpacity
             style={[s.takeBtn, shadow.button]}
             onPress={() => canTake && onTakeABike(station)}
@@ -95,7 +89,8 @@ export default function StationDetailsModal({ visible, station, activeRide, onCl
             <LinearGradient
               colors={canTake ? G.forestToMint : ['#CBD5E1', '#CBD5E1']}
               style={s.takeBtnGrad}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
             >
               <Text style={s.takeBtnText}>
                 {activeRide
@@ -106,6 +101,7 @@ export default function StationDetailsModal({ visible, station, activeRide, onCl
               </Text>
             </LinearGradient>
           </TouchableOpacity>
+
         </ScrollView>
       </View>
     </Modal>
@@ -127,24 +123,18 @@ const sc = StyleSheet.create({
 });
 
 const s = StyleSheet.create({
-  backdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet:        { backgroundColor: C.cream, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', maxHeight: '78%' },
-  handle:       { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.45)', borderRadius: 2, alignSelf: 'center', marginTop: 14, position: 'absolute', top: 0, zIndex: 10 },
-  gradHeader:   { padding: 24, paddingTop: 30, paddingBottom: 22 },
-  stationName:  { fontSize: 21, fontWeight: '900', color: C.white, marginBottom: 3, letterSpacing: -0.3 },
-  stationSub:   { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 18, fontWeight: '500', letterSpacing: 0.3 },
-  statsRow:     { flexDirection: 'row', gap: 10 },
-  section:      { marginHorizontal: 20, marginTop: 20, marginBottom: 4 },
-  rowBetween:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+  sheet:       { backgroundColor: C.cream, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', maxHeight: '82%' },
+  handle:      { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.45)', borderRadius: 2, alignSelf: 'center', marginTop: 14, position: 'absolute', top: 0, zIndex: 10 },
+  gradHeader:  { padding: 24, paddingTop: 30, paddingBottom: 22 },
+  stationName: { fontSize: 21, fontWeight: '900', color: C.white, marginBottom: 3, letterSpacing: -0.3 },
+  stationSub:  { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 18, fontWeight: '500', letterSpacing: 0.3 },
+  statsRow:    { flexDirection: 'row', gap: 10 },
+  section:     { marginHorizontal: 20, marginTop: 20, marginBottom: 4 },
+  rowBetween:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   sectionTitle: { fontSize: 12, fontWeight: '800', color: C.mutedText, letterSpacing: 0.8, textTransform: 'uppercase' },
-  pct:          { fontSize: 14, fontWeight: '800' },
-  predList:     { gap: 12, marginTop: 10 },
-  predRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  predLabel:    { width: 80, fontSize: 12, color: C.mutedText, fontWeight: '500' },
-  predRight:    { flex: 1, gap: 5 },
-  predVal:      { fontSize: 13, fontWeight: '700', color: C.darkText },
-  disclaimer:   { fontSize: 11, color: C.mutedText, marginTop: 10 },
-  takeBtn:      { borderRadius: 20, overflow: 'hidden', margin: 20, marginTop: 24 },
-  takeBtnGrad:  { paddingVertical: 17, alignItems: 'center', borderRadius: 20 },
-  takeBtnText:  { color: C.white, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  pct:         { fontSize: 14, fontWeight: '800' },
+  takeBtn:     { borderRadius: 20, overflow: 'hidden', margin: 20, marginTop: 24 },
+  takeBtnGrad: { paddingVertical: 17, alignItems: 'center', borderRadius: 20 },
+  takeBtnText: { color: C.white, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
 });
